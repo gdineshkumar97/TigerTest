@@ -1,0 +1,291 @@
+Bigdata Hadoop and Spark Developer --- Day 3
+Trainer: Prashant Nair
+================================================================================================================================
+
+Agenda:
+
+Revision
+Sqoop Operations -- Part2
+
+
+
+Bigdata Project Phases
+----------------------
+
+1. Data Acquisition Phase
+2. Data Preprocessing Phase
+3. Data Transformation Phase
+4. Data View Phase
+5. Intelligence layer Phase
+
+
+						Hadoop Framework (Java Based Framework)
+								|
+		----------------------------------------------------------------------------------------------------
+		|						|						   |
+	Storage Part of Hadoop		Processing part of Hadooop				Resource management layer of Hadoop
+	HDFS				MR							YARN
+
+
+HDFS Daemons
+	- Namenode (Master) -- 2 NN machines ( 1 active, 1 standby ) (Gen2)
+	- DataNode (Slave) --- Unlimited
+
+
+
+MapReduce Framework
+----------------------
+
+There exists 5 phases:
+
+
+a. Input phase - Accept the data in the form of file residing in HDFS, and convert the contents of teh data into its equivalent K,V pair.
+b. Mapper Phase - Used to perform data preprocessing and making the data compatible for the next phase.
+c. Sort/Shuffle phase - Automated phase responsible to perform sorting and compression
+d. Reducer Phase - Responsible to perform Transformation operation ( filter,. group, count , agg , etc)
+e. Output phase - Accept the processed data from the reducer and represent the same in the form of file.
+
+
+Data Acquisition Part
+
+File -----------> copyFromLocal / put / Hue WebUI ---------------------> HDFS
+Database -------> Apache Sqoop ----------------------------------------> HDFS
+Streams --------> Apache Flume / Apache Kafka -------------------------> HDFS
+
+
+Apache Sqoop
+-------------
+
+Its a simple CLI-based Tool.
+
+				Sqoop Operations
+					|
+		-------------------------------------------
+		|					  |
+	Import Operation			Export Operation
+	
+	DB to HDFS				HDFS to DB
+	DB to Hive
+	DB to HBase
+
+
+Sqoop Initial Check
+-----------------------
+
+a. list-databases command: This command is used to connect to the database engine and get the list of all the databases 
+	Keyword: list-databases
+	Parameters:
+		--connect : pass the connection string without the database object name to connect to 
+		--username : username used to connect to your database engine
+		--password : password used  to connect to your database engine
+
+
+b. evaluate command: This command is used to connect to a database object and execute SQL queries.
+	Keyword: eval
+	Parameters:
+		--connect : pass the connection string wit the database object name to connect to 
+		--username : username used to connect to your database engine
+		--password : password used  to connect to your database engine
+		--query : Used to supply SQL query
+
+
+Sqoop Import Operations
+--------------------------
+
+a. Import a table from DB to HDFS 
+
+	keyword: import
+	Parameters:
+		--connect : pass the connection string wit the database object name to connect to 
+		--username : username used to connect to your database engine
+		--password : password used  to connect to your database engine
+		--table : Used to specify which table to connect to.
+		--target-dir: Used to specify the HDFS destination location
+		-m : number of mappers (1)
+		--columns: Specifying which columns to trf @ which order of the cols
+
+
+b. Import the subset of the data
+
+	e.g. Extract those employees who reside in BLR and transfer the same in HDFS
+
+select * from tigeremp where ecity='Bangalore';
+
+
+
+sqoop import --connect * --username * --password * --table * --target-dir * --where "ecity='Bangalore'" -m 1
+
+e.g. I want to import those records whose salary is greater than equal to 2000
+select * from emp007 where esal >= 2000;
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --table employee5apr2022 --target-dir /user/prashantnair2050gmail/05April2022/sqoop/salgt50000 --where "esal >= 50000" --columns "eid,ename,esal" -m 1
+
+c. Import Data on the basis of Sql Query
+
+where \$CONDITIONS
+
+
+e.g. I want to import those records whose salary is greater than equal to 50000
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --target-dir /user/prashantnair2050gmail/05April2022/sqoop/salgt50000_FromQuery --query "select * from emp where esal >= 50000 and \$CONDITIONS" -m 1
+
+
+Note: Append and \$CONDITIONS whenever your query has where clause
+e.g. select * from employee5apr2022 where esal >= 50000 and esal <= 1000000 and \$CONDITIONS
+
+
+5. Changing the delimiter
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --table employee5apr2022 --target-dir /user/prashantnair2050gmail/05April2022/sqoop/output4 -m 1 --fields-terminated-by '\t'
+
+Note: --fields-terminated-by keyword must be declared at the last
+
+
+
+6. Incremental Imports
+
+--incremental append: This will append the new data in the existing output folder
+--check-column: Specify the column the incremental import is dependent on (it would be the primary or unique key)
+--last-value: Specify the last value entered.
+
+
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --table emp007 --target-dir /user/prashantnair2050gmail/sqoopdemo/emp007WithoutPK --incremental append --check-column eid --last-value 4 --columns "eid,ename,esal" -m 1
+
+
+
+
+
+Sqoop Export Operation
+========================
+
+HDFS to DB
+
+1. Ensure that the table exists in the database
+
+	truncate <tableName>
+
+2. Perform the following command
+
+sqoop export --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --table emp007 --export-dir /user/prashantnair2050gmail/sqoopdemo/emp007WithoutPK --input-fields-terminated-by ',' --columns "eid,ename,esal"
+
+
+
+
+
+
+Sqoop Assignment
+------------------
+
+Perform the following operations
+
+1. Upload the txnsSmall dataset in hdfs location @ tigeranalytics/smallDataset/txnsSmall
+
+Using Hue or using CLI command
+
+
+2. Transfer the data from tigeranalytics/smallDataset/txnsSmall into Mysql table named walmarttransactions
+
+Sqoop Export:
+Hint for creating table
+
+create table walmarttransactions06042022
+(txnid bigint,
+txndate varchar(20),
+custid int,
+amount double,
+category text,
+subcategory text,
+city text,
+state text,
+txntype text);
+
+
+
+
+
+3. Import those records from walmarttransactions whose category is "Exercise & Fitness"
+
+Method1: using --where
+
+
+
+
+Method2: using --query
+
+
+Method3: using sqoop eval to display output of the query
+
+
+
+
+
+
+4. Using Sqoop perform a query that can return total number of transactions done by cash and credit
+
+
+
+
+5. Find the total revenue generated based on category in walmarttransactions and store the result in HDFS.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

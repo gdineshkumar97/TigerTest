@@ -1,0 +1,73 @@
+Bigdata Hadoop and Spark Developer --- Day 5
+Trainer: Prashant Nair
+================================================================================================================================
+
+Agenda
+-------
+Revision
+Assignment Completion
+Introduction to NoSQL
+Hbase Primer
+Introduction to Apache Flume
+
+
+
+						Apache Hive
+							|
+		---------------------------------------------------------------------------------
+		|					|					|
+	Storage Part of Hive		Processing part of Hive			Metastore management
+	HDFS				MR					In-memory or Normal DB
+					Spark
+					Tez
+
+
+						Tables in Hive
+							|
+				-------------------------------------------------
+				|						|
+			Internal Table					External Table
+			Managed Table					Unmanaged Table
+
+			
+	
+
+Introduction to NoSQL
+=======================
+
+	NoSQL ---> Not Only SQL
+	Concept that is applicable for distributed architecture
+
+Concept of CAP Theorem:
+
+	Consistency
+	Availability
+	Partition-Tolerance
+
+Hbase  Notes:
+
+Open hbase shell
+
+
+hbase(main):001:0> create 'hr_ppn','emp'
+                                                                    
+
+hbase(main):002:0> put 'hr_ppn',1,'emp:ename','Prashant'
+                                                                                                                                                                   
+hbase(main):003:0> put 'hr_ppn',1,'emp:esal','20000'
+                                                                                                                                                                  
+hbase(main):004:0> scan 'hr_ppn'
+                                                                                                                                                                     
+hbase(main):005:0> put 'hr_ppn',1,'emp:esal','50000'
+                                                                                                                                                                
+hbase(main):006:0> scan 'hr_ppn'
+                                                                    
+hbase(main):007:0> get 'hr_ppn',1
+                                                                                                                                                                    
+hbase(main):008:0> put 'hr_ppn',2,'emp:fname','Arun'
+                                                                                                                                                                  
+hbase(main):009:0> put 'hr_ppn',2,'emp:lname','Kumar'
+                                                                                                                                                                 
+hbase(main):010:0> scan 'hr_ppn'
+
+		

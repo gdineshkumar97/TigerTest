@@ -1,0 +1,471 @@
+Bigdata Hadoop and Spark Developer --- Day 2
+Trainer: Prashant Nair
+===============================================================================================================================
+
+Agenda
+-------
+Revision
+Introduction to the Processing part of Hadoop
+MR in Detail
+Lab: How to read job logs
+Apache Sqoop in Detail
+Lab: Sqoop Operations - Part1
+
+
+Bigdata Project Phases:
+
+1. Data Acquisition Phase - Collect and Store
+2. Data Preprocessing Phase - Preparing the data and making it compatible for the next phase
+3. Data transformation Phase - Performing transformations like JOIN, FILTER, GROUP etc
+4. Data View Phase - To make the processed data QUERY-ABLE
+5. Intelligence Layer Phase - Extracting intelligence using the AI techniques
+
+
+As a DE you all will be focusing on Acquisition, Preprocessing and Transformation , View Phase.
+
+
+					Hadoop Framework
+						|
+	----------------------------------------------------------------------------------------------
+	|					|						     |
+Storage Part of Hadoop		     Processing part of hadoop			        Resource Management Layer
+HDFS(hadoop distributed		     MR - MapReduce					YARN - Yet Another Resource Negotiator	
+file system)
+
+					Hadoop HDFS Daemons
+						|
+		---------------------------------------------------------------------
+		|								    |
+	     Namenode								Datanode
+       	     (master)     							(slave)
+	     (2 NN where 1 active,1 standby)
+	     (maintains the index info of the data that is			(Actual IO operation)
+              stored in HDFS)
+
+
+HDFS:
+	- HDFS is immutable in nature
+	- HDFS default block size: 
+		Gen1: 64M
+		Gen2: 128M
+	- HDFS Replication Factor: 3 irrespective of any gen.
+
+HDFS commands:
+	
+	1. List the files in a folder 
+		hdfs dfs -ls 
+
+	2. Upload the data in HDFS
+		hdfs dfs -copyFromLocal sourceLocalFileSystem destHDFSFileSystem
+		hdfs dfs -put sourceLocalFileSystem destHDFSFileSystem
+
+	3. Create Dir in HDFS
+		hdfs dfs -mkdir testDir
+		
+
+
+
+
+Processing Part of Hadoop
+==========================
+
+MapReduce Framework --- Java_based framework
+
+It contains 5 mandatory phases:
+	
+	a. Input Phase
+	b. Mapper Phase
+	c. Sort Shuffle Phase
+	d. Reducer Phase
+	e. Output Phase
+
+=================================================================================
+
+Example: WordCount Problem
+
+You have a file containing some sentences. Your goal is to count the occurances of each unique word
+
+5 node cluster (3 DNs) (Block Size: 64M , RF: 1, My Cluster is IMMORTAL !!! )
+
+
+file1.txt (192MB) (No of blocks: 3)
+
+Hadoop is good and better and best  --------------------> 64M,B1,DN1
+Hadoop Hadoop Spark Spark Storm Spark ------------------> 64M,B2,DN2
+Hadoop Spark Hadoop Hadoop Hadoop ----------------------> 64M,B3,DN3
+
+
+Expected Output
+
+Hadoop 7
+is 1
+good 1
+and 2
+...
+
+--------------------------------------------------------------------------------------
+
+
+a. Input Phase: This phase is responsible to accept the data in the form of file and convert the CONTENT of the file into its equivalent Key,Value pair.
+
+					org.apache.hadoop.mapreduce
+							|
+						     InputFormat
+							|
+						    TextInputFormat
+
+					(K - line number byte offset)
+					(V - Line itself)
+
+(1,Hadoop is good and better and best) --------------DN1
+(2,Hadoop Hadoop Spark Spark Storm Spark) -----------Dn2
+(3,Hadoop Spark Hadoop Hadoop Hadoop) ---------------DN3
+
+
+b. Mapper Phase: This phase is responsible for data preprocessing/preparation activity to ensure the data is compatible for the next phase. This phase is controlled by the programmar.
+
+Goal: count the words
+What you need: K,V pair containing words
+What you have: K,V pair containing sentences
+
+Goal of this phase: Convert sentences to words
+			K - word
+			V - 1
+
+
+Input: 
+(1,Hadoop is good and better and best) --------------DN1
+(2,Hadoop Hadoop Spark Spark Storm Spark) -----------Dn2
+(3,Hadoop Spark Hadoop Hadoop Hadoop) ---------------DN3
+
+
+Output:
+
+DN1				Dn2			Dn3
+
+(Hadoop,1)			(Hadoop,1)		(Hadoop,1)	
+(is,1)				(Hadoop,1)		(Spark,1)
+(good,1)			(Spark,1)		(Hadoop,1)
+(and,1)				(Spark,1)		(Hadoop,1)
+(better,1)			(Storm,1)		(Hadoop,1)
+(and,1)				(Spark,1)
+(best,1)
+
+
+
+
+c. Sort and Shuffle: This phase is an automated phase. Neither the programmer nor admin has control over this phase. You cant bypass this phase. This phase internally has two sub-phases. 
+	a. Sort phase
+	b. Shuffle phase
+
+	a. Sort phase: This phase is all about arranging the key value pair in ascending order based on key part of the data.
+	
+
+Input:
+
+DN1				Dn2			Dn3
+
+(Hadoop,1)			(Hadoop,1)		(Hadoop,1)	
+(is,1)				(Hadoop,1)		(Spark,1)
+(good,1)			(Spark,1)		(Hadoop,1)
+(and,1)				(Spark,1)		(Hadoop,1)
+(better,1)			(Storm,1)		(Hadoop,1)
+(and,1)				(Spark,1)
+(best,1)
+
+
+Output:
+
+DN1				Dn2			DN3
+
+(Hadoop,1)			(Hadoop,1)		(Hadoop,1)
+(and,1)				(Hadoop,1)		(Hadoop,1)	
+(and,1)				(Spark,1)		(Hadoop,1)
+(best,1)			(Spark,1)		(Hadoop,1)
+(better,1)			(Spark,1)		(Spark,1)
+(good,1)			(Storm,1)
+(is,1)
+
+
+	b. Shuffle Phase: This phase is meant for data compression. 
+
+
+Input:
+
+DN1				Dn2			DN3
+
+(Hadoop,1)			(Hadoop,1)		(Hadoop,1)
+(and,1)				(Hadoop,1)		(Hadoop,1)	
+(and,1)				(Spark,1)		(Hadoop,1)
+(best,1)			(Spark,1)		(Hadoop,1)
+(better,1)			(Spark,1)		(Spark,1)
+(good,1)			(Storm,1)
+(is,1)
+
+
+Output:
+
+DN1				Dn2			DN3
+
+(Hadoop,1)			(Hadoop,1,1)		(Hadoop,1,1,1,1)
+(and,1,1)						
+				(Spark,1,1,1)		
+(best,1)					
+(better,1)						(Spark,1)
+(good,1)			(Storm,1)
+(is,1)
+
+
+
+
+
+4. Reducer Phase: This phase is responsible for the actual data transformation operation
+
+Goal: Count the occurances of unique words
+
+WHat we have? ---> (word, occurances)
+What we need? ---> (word, finalCount)
+
+Logic: Perform sum operation on the value part of K,V pair
+
+
+Reducer internally has two sub-phases:
+	a. Reducer at Data node level: Applying logic at data node level
+
+Input:
+
+DN1				Dn2			DN3
+
+(Hadoop,1)			(Hadoop,1,1)		(Hadoop,1,1,1,1)
+(and,1,1)						
+				(Spark,1,1,1)		
+(best,1)					
+(better,1)						(Spark,1)
+(good,1)			(Storm,1)
+(is,1)
+
+Output:
+
+DN1				Dn2			DN3
+
+(Hadoop,1)			(Hadoop,1,1)		(Hadoop,4)
+(and,2)						
+				(Spark,3)		
+(best,1)					
+(better,1)						(Spark,1)
+(good,1)			(Storm,1)
+(is,1)
+
+
+
+	b. Reducer at Cluster level: Applying Logic at cluster level
+
+
+
+Input:
+
+DN1				Dn2			DN3
+
+(Hadoop,1)			(Hadoop,1,1)		(Hadoop,4)
+(and,2)						
+				(Spark,3)		
+(best,1)					
+(better,1)						(Spark,1)
+(good,1)			(Storm,1)
+(is,1)
+
+
+
+Final Output
+
+(Hadoop,7)
+(and,2)
+(bets,1)
+(better,1)
+(good,1)
+(is,1)
+(Spark,4)
+(Storm,1)
+
+
+
+5. Output Phase: This phase is responsible to accept the output from reducer in the form of key value pair and represent the same in the form of file and store the file in the HDFS destination location as mentioned by the programmer.
+
+
+
+
+					org.apache.hadoop.mapreduce
+							|
+						     OutputFormat
+							|
+						    TextOutputFormat
+
+					
+It generates 2 files
+
+_SUCCESS file --- This file ack the user that all blocks associated to the file is processed successfully.
+part-r-* -------- This contains the actual output content in the form of Tab Seperated Values
+
+
+
+
+
+
+
+
+
+
+
+
+Hadoop MapReduce Program Execution Demo
+=========================================
+
+1. Upload the dataset in HDFS 
+
+	hdfs dfs -mkdir -p wordcount/dataset
+	hdfs dfs -copyFromLocal wordcountDataset.txt wordcount/dataset/wordcountDataset.txt
+	
+
+2. To execute the MR code perform the following command
+
+yarn jar hadoop-mapreduce-examples-3.0.0.jar wordcount wordcount/dataset/wordcountDataset.txt wordcount/output
+
+
+Data Acquisition Phase
+-------------------------
+Goal: Collect and Store
+
+
+File ------------------> copyFromLocal ---------------------> HDFS
+			 put
+			 Hue
+
+
+Database -------------> Apache Sqoop -----------------------> HDFS
+
+
+Streams -------------> Apache Flume ------------------------> HDFS
+
+
+
+Working with Lab MySQL Database
+---------------------------------------
+
+
+Step1: To access mysql db in LMS Lab
+
+mysql -u prashantnair2050gmail -pprashantnair2050gmailopa -h sqoopdb.slbdh.cloudlabs.com
+
+Step2: Get inside the database (here db name is username)
+
+use prashantnair2050gmail
+
+Step3: Create table and insert some recornds
+
+MySQL [prashantnair2050gmail]> create table emp
+    -> (eid int,
+    -> ename text,
+    -> esal int,
+    -> ecity text);
+Query OK, 0 rows affected (0.02 sec)
+
+MySQL [prashantnair2050gmail]> select * from emp;
+Empty set (0.01 sec)
+
+MySQL [prashantnair2050gmail]> insert into emp values(1,'Prashant',87897,'BOM');
+Query OK, 1 row affected (0.00 sec)
+
+MySQL [prashantnair2050gmail]> insert into emp values(2,'Viral',23447,'BLR');
+Query OK, 1 row affected (0.00 sec)
+
+MySQL [prashantnair2050gmail]> insert into emp values(3,'Abhishek',50000,'CHN');
+Query OK, 1 row affected (0.00 sec)
+
+MySQL [prashantnair2050gmail]> select * from emp;
++------+----------+-------+-------+
+| eid  | ename    | esal  | ecity |
++------+----------+-------+-------+
+|    1 | Prashant | 87897 | BOM   |
+|    2 | Viral    | 23447 | BLR   |
+|    3 | Abhishek | 50000 | CHN   |
++------+----------+-------+-------+
+3 rows in set (0.00 sec)
+
+
+
+
+Apache Sqoop
+-------------
+
+Apache Sqoop is a Data Acquisition tool used to perform the following operations
+	
+				Apache Sqoop Operations
+					|
+		---------------------------------------------------------
+		|							|
+	Import Operation					Export Operation
+
+	- DB to HDFS						- HDFS to DB
+	- DB to Hive
+	- DB to HBase
+
+
+Lets check if Sqoop can interact with your database and its objects:
+
+
+
+Method1: List the database in the database engine
+
+sqoop list-databases --connect 	jdbc:mysql://sqoopdb.slbdh.cloudlabs.com --username prashantnair2050gmail --password prashantnair2050gmailoufpa
+
+
+Method2: Running a query using Sqoop in MYSQL DB
+
+sqoop eval --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --query "select * from emp"
+
+
+Import Operation
+=================
+
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --table tigeremp --target-dir employeedata --columns "eid,ename,esal,ecity" -m 1
+
+
+
+
+-m number of mapper --- Ifyour table doesnt have a primary key, you will need to use -m paramter
+
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/dineshkumargtigeranalytic --username dineshkumargtigeranalytic --password dineshkumargtigeranalyticoamd6 --table emp --target-dir /user/dineshkumargtigeranalytic/06-Jul-2022 --where "ecity='BOM'" -m 1
+
+
+mysql -u dineshkumargtigeranalytic -pdineshkumargtigeranalyticoamd6 -h sqoopdb.slbdh.cloudlabs.com
+
+select * from emp where eid in (1,3);
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/prashantnair2050gmail --username prashantnair2050gmail --password prashantnair2050gmailoufpa --target-dir /user/prashantnair2050gmail/05April2022/sqoop/salgt50000_FromQuery --query "select * from emp where esal >= 50000 and \$CONDITIONS" -m 1
+
+sqoop import --connect jdbc:mysql://sqoopdb.slbdh.cloudlabs.com/dineshkumargtigeranalytic --username dineshkumargtigeranalytic --password dineshkumargtigeranalyticoamd6 --target-dir /user/dineshkumargtigeranalytic/06-Jul-2022/FromQueryTerminatedByTabs --query "select * from emp where eid in (1,3) and \$CONDITIONS" -m 1 --fields-terminated-by '\t'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+						

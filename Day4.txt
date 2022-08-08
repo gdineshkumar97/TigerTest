@@ -1,0 +1,111 @@
+Bigdata Hadoop and Spark Developer --- Day 4
+Trainer: Prashant Nair
+================================================================================================================================
+
+Agenda
+-------
+Revision
+Apache Hive
+Hive Sqoop Interaction (Internal and External)
+Assignments
+
+
+
+Goal of Data Acquisition Phase - Collect and Store
+
+File -----> copyFromLocal/put/Hue -----------------------> HDFS
+
+
+Database --> Apache Sqoop ------------------------------> HDFS
+
+
+Streams ---> Apache Flume/Apache Kafka -----------------> HDFS
+
+
+
+			Apache Sqoop
+				|
+		--------------------------------------
+		|				     |
+	Import Operation			Export Operation
+
+	DB to HDFS				HDFS to DB
+	DB to Hive
+	DB to HBase
+
+
+MapReduce Framework
+
+There exists 5 phases:
+
+a. Input Phase
+b. Mapper Phase
+c. Sort Shuffle Phase
+d. Reducer Phase
+e. Output Phase
+
+
+
+Apache Hive
+-----------
+
+Data warehousing tool---- Place/Setup to store and process Historical Data
+
+
+
+
+							Apache Hive
+								|
+		-------------------------------------------------------------------------------------------------
+		|						|						|
+	Storage part of Hive			Processing Part of Hive			Metastore management part of Hive
+	HDFS					MR (default)				Any In-memory or normal DB tool
+						Apache Spark
+						Apache Tez
+
+
+
+
+
+create database <username>
+
+use <username>
+
+
+create table employee
+(empid int,
+ename string,
+esal int)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+
+
+LOAD DATA INPATH '/user/prashantnair2050gmail/hiveDatasetDemo/empData.txt' INTO TABLE employee;
+
+
+select * from employee;
+
+select count(*) from employee;
+
+select * from employee where empid > 3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
